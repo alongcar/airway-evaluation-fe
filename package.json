@@ -1,0 +1,27 @@
+{
+  "name": "airway-evaluation-fe",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
+    "axios": "^1.6.0",
+    "element-plus": "^2.4.0",
+    "tailWindCSS": "npm:tailwindcss@^3.4.19",
+    "TailWindCSS": "npm:tailwindcss@^3.4.19",
+    "vue": "^3.3.4",
+    "vue-router": "^4.2.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.2.3",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "vite": "^4.4.5"
+  }
+}
