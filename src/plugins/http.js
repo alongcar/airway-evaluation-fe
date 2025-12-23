@@ -49,7 +49,7 @@ const httpStatus = (status) => {
 
 // create an axios instance
 const service = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_BASE_URL || '/api',
   timeout: 5000,
   headers: {
     get: {

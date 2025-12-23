@@ -95,6 +95,8 @@
           <div><span class="text-gray-500">病案号：</span><span class="font-medium text-gray-900">{{ patientInfo.caseNumber }}</span></div>
           <div><span class="text-gray-500">性别：</span><span class="font-medium text-gray-900">{{ patientInfo.gender }}</span></div>
           <div><span class="text-gray-500">年龄：</span><span class="font-medium text-gray-900">{{ patientInfo.age }}岁</span></div>
+          <div><span class="text-gray-500">身高：</span><span class="font-medium text-gray-900">{{ patientInfo.height }}cm</span></div>
+          <div><span class="text-gray-500">体重：</span><span class="font-medium text-gray-900">{{ patientInfo.weight }}kg</span></div>
         </div>
       </div>
 
@@ -103,8 +105,7 @@
         <h3 class="text-lg font-bold text-gray-800 mb-3 pl-2 border-l-4 border-[#7B68EE]">手术列表</h3>
         <el-table :data="surgeryList" stripe style="width: 100%" border>
           <el-table-column prop="date" label="手术日期" width="180" />
-          <el-table-column prop="name" label="手术名称" />
-          <el-table-column prop="doctor" label="主刀医生" width="120" />
+          <el-table-column prop="surgeryName" label="手术名称" />
            <el-table-column label="操作" width="120" align="center">
             <template #default="scope">
               <el-button type="primary" size="small" @click="startEvaluation(scope.row)">
@@ -122,7 +123,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getPatientBaseInfo } from '@/api/airway.js'
+import { getPatientSurgeryList } from '@/api/airway.js'
 
 const router = useRouter()
 const caseNumber = ref('')
@@ -149,28 +150,60 @@ const checkCaseNumber = () => {
 
 const fetchSurgeryList = async () => {
   try {
-    // 真实调用接口逻辑 (虽然接口可能不通，但逻辑先写好)
-    // const res = await getPatientBaseInfo({ caseNumber: caseNumber.value });
-    // if (res && res.data) { ... }
-    
-    // 模拟数据 (Mock Data)
-    console.log(`Fetching info for case number: ${caseNumber.value}`);
-    
-    // 模拟病人信息
-    patientInfo.value = {
-      name: '张三',
-      caseNumber: caseNumber.value,
-      gender: '男',
-      age: 45
-    }
+    // 真实调用接口逻辑
+    const res = await getPatientSurgeryList({ admissionNumber: caseNumber.value });
+    console.log('API Response:', res)
+    if(res.code !== 200){
+        if(res.code === 10001){
+            ElMessage.warning(res.msg || res.err || '未找到病人信息')
+            return
+        }
 
-    // 模拟手术列表
-    surgeryList.value = [
-      { date: '2023-12-23 09:00', name: '腹腔镜下胆囊切除术', doctor: '王医生' },
-      { date: '2023-12-25 14:30', name: '甲状腺切除术', doctor: '李医生' },
-    ]
+        if(res.code === 10006){
+            ElMessage.warning(res.msg || res.err || '未找到病人信息')
+            return
+        }
+        ElMessage.error(res?.msg || '获取信息失败')
+        return
+    }
     
-    showSurgeryList.value = true
+    if (res && res.code === 200) {
+      const dataList = res.data || []
+      
+      if (dataList.length > 0) {
+        // 取第一条数据作为病人基本信息
+        const info = dataList[0]
+        patientInfo.value = {
+          name: info.name,
+          caseNumber: info.admissionNumber,
+          gender: info.gender === 'MALE' ? '男' : (info.gender === 'FEMALE' ? '女' : info.gender),
+          age: info.age,
+          patientId: info.patientId,
+          registerId: info.registerId,
+          height: info.height,
+          weight: info.weight,
+          pastMedicalHistory: info.pastMedicalHistory
+        }
+
+        // 映射手术列表
+        surgeryList.value = dataList.map(item => ({
+          date: item.surgeryDate ? item.surgeryDate.replace('T', ' ').substring(0, 16) : '',
+          surgeryName: item.surgeryName,
+          ...item // 保留原始数据
+        }))
+        
+        showSurgeryList.value = true
+      } else {
+        ElMessage.warning('未找到该病人的手术信息')
+        surgeryList.value = []
+        patientInfo.value = null
+      }
+    } else if (res && res.code === 10006) {
+      ElMessage.warning(res.msg || res.err || '未找到病人信息')
+      surgeryList.value = []
+    } else {
+      ElMessage.error(res?.msg || '获取信息失败')
+    }
   } catch (error) {
     console.error('Error fetching patient info:', error)
     ElMessage.error('获取病人信息失败')
@@ -184,8 +217,10 @@ const startEvaluation = (row) => {
     router.push({
       path: '/airway-evaluation',
       query: {
-        caseNumber: patientInfo.value.caseNumber,
-        surgeryName: row.name
+        // caseNumber: patientInfo.value.caseNumber,
+        // surgeryName: row.name,
+        // 传递完整病人信息
+        patientData: JSON.stringify(patientInfo.value)
       }
     })
 }

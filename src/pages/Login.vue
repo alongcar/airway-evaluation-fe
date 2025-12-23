@@ -60,8 +60,8 @@
       </div>
     </main>
     <footer class="w-full max-w-6xl py-6 text-center text-xs text-gray-500 z-10">
-      <p>© 2023 气道评估系统. All rights reserved.</p>
-      <p class="mt-1">技术支持：XX 医疗科技有限公司 | 备案号：京ICP备XXXXXXXX号</p>
+      <p>© 2025 气道评估系统. All rights reserved.</p>
+      <p class="mt-1">技术支持：智竹医疗科技有限公司 | 备案号：京ICP备XXXXXXXX号</p>
     </footer>
     <div class="absolute bottom-20 left-10 opacity-20 transform rotate-12">
       <img src="https://ai-public.mastergo.com/ai/img_res/055190c1c710158ddfa6610014261948.jpg" alt="" class="w-24 h-24 object-contain">

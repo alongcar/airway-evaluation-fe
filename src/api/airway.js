@@ -6,9 +6,9 @@ import service from '@/plugins/http';
  * 说明: 获取结果是列表，对应该病人的多台手术，一般只会有一台
  * @param {object} params 查询参数，通常为病案号 { caseNumber: '...' }
  */
-export const getPatientBaseInfo = (params) => {
+export const getPatientSurgeryList = (params) => {
   return service({
-    url: '/patient/baseinfo',
+    url: '/airway/patient/baseinfo',
     method: 'get',
     params
   });
@@ -22,9 +22,21 @@ export const getPatientBaseInfo = (params) => {
  */
 export const savePatientInfo = (data) => {
   return service.post(
-    '/airway/patient/save',
+    '/airway/airway/patient/save',
     data
   );
+};
+
+/**
+ * 获取气道评估病人信息
+ * @param {string} patientId 
+ */
+export const getAirwayPatientById = (patientId) => {
+  return service({
+    url: '/airway/airway/patient/getByPatientId',
+    method: 'get',
+    params: { patientId }
+  });
 };
 
 /**
@@ -35,12 +47,24 @@ export const savePatientInfo = (data) => {
  */
 export const pushMediaInfo = (formData) => {
   return service({
-    url: '/airway/patientMediaInfo/pushMediaInfo',
+    url: '/airway/airway/patientMediaInfo/pushMediaInfo',
     method: 'post',
     data: formData,
     // axios 自动处理 FormData 的 Content-Type，通常不需要手动设置，
     // 但如果 http.js 封装有特殊处理，可能需要注意。
     // 这里保持默认，让 axios 自动识别 multipart/form-data
+  });
+};
+
+/**
+ * 获取患者图像/视频信息
+ * @param {string} airwayPatientId 
+ */
+export const getPatientMediaInfo = (airwayPatientId) => {
+  return service({
+    url: '/airway/patientMediaInfo/getByAirwayPatientId',
+    method: 'get',
+    params: { airwayPatientId }
   });
 };
 
