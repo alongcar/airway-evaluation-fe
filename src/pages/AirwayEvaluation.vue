@@ -12,7 +12,9 @@
             气道评估系统 <span class="text-sm font-light text-gray-600 ml-2">Airway Assessment System</span>
          </div>
       </div>
-      <!-- Optional: Add user profile or logout here if needed -->
+      <el-button type="primary" plain class="shadow-sm hover:shadow-md transition-all" @click="router.push('/')">
+        <i class="fas fa-home mr-2"></i> 返回首页
+      </el-button>
     </header>
 
     <!-- Main Content Area -->
@@ -85,9 +87,19 @@
                 </div>
                 <div class="flex flex-col justify-center h-full pt-2 gap-2">
                     <template v-if="!isEditing">
-                        <el-button type="primary" color="#2563EB" class="px-6 shadow-md hover:shadow-lg transition-all whitespace-nowrap" @click="isEditing = true">
-                            <i class="fas fa-edit mr-2"></i> 修改信息
-                        </el-button>
+                        <el-tooltip content="该病人信息已保存" placement="top" :disabled="!isSaved">
+                            <div class="inline-block">
+                                <el-button 
+                                    type="primary" 
+                                    color="#2563EB" 
+                                    class="px-6 shadow-md hover:shadow-lg transition-all whitespace-nowrap" 
+                                    :disabled="isSaved" 
+                                    @click="isEditing = true"
+                                >
+                                    <i class="fas fa-edit mr-2"></i> 修改信息
+                                </el-button>
+                            </div>
+                        </el-tooltip>
                          <el-tooltip content="该病人信息已保存" placement="top" :disabled="!isSaved">
                             <div class="inline-block">
                                 <el-button 
@@ -101,16 +113,48 @@
                             </div>
                         </el-tooltip>
                     </template>
-                    <el-button v-else type="success" class="px-6 shadow-md hover:shadow-lg transition-all whitespace-nowrap" @click="comfirmSavePatientInfo">
-                        <i class="fas fa-save mr-2"></i> 确认保存
+                    <el-button v-else type="primary" plain class="px-6 shadow-md hover:shadow-lg transition-all whitespace-nowrap" @click="isEditing = false">
+                        <i class="fas fa-check mr-2"></i> 完成修改
                     </el-button>
                 </div>
             </div>
         </div>
 
         <!-- Evaluation Form Card -->
-        <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-8 flex-1 overflow-y-auto custom-scrollbar">
+        <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-8 flex-1 overflow-y-auto custom-scrollbar relative">
              
+             <!-- Result Overlay -->
+             <div v-if="evaluationResult" class="absolute inset-0 z-20 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in">
+                <div class="text-center p-8 rounded-2xl bg-white shadow-2xl border border-blue-100 max-w-md w-full">
+                    <div class="mb-6">
+                        <div class="w-20 h-20 mx-auto bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                             <i class="fas fa-clipboard-check text-4xl text-blue-600"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2">评估结果</h2>
+                        <p class="text-gray-500 text-sm">Evaluation Result</p>
+                    </div>
+                    
+                    <div class="space-y-6 mb-8">
+                        <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+                            <span class="text-gray-600 font-medium">是否困难气道</span>
+                            <span :class="['text-xl font-bold px-3 py-1 rounded-lg', evaluationResult.prediction ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600']">
+                                {{ evaluationResult.prediction ? '是 (Yes)' : '否 (No)' }}
+                            </span>
+                        </div>
+                         <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+                            <span class="text-gray-600 font-medium">预测概率</span>
+                            <span class="text-xl font-bold text-blue-600">
+                                {{ (evaluationResult.probability * 100).toFixed(2) }}%
+                            </span>
+                        </div>
+                    </div>
+
+                    <el-button type="primary" size="large" class="w-full" @click="router.push('/')">
+                        <i class="fas fa-home mr-2"></i> 回到首页
+                    </el-button>
+                </div>
+             </div>
+
              <!-- Row 1 -->
              <div class="flex gap-8 mb-10">
                 <!-- Appearance (2 images) -->
@@ -205,9 +249,20 @@
 
              <!-- Bottom Action Button -->
              <div class="flex justify-end mt-12 pt-6 border-t border-gray-100">
-               <el-button type="primary" color="#2563EB" class="px-12 py-6 text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300" size="large" @click="sendStartPredictMsg">
-                 <i class="fas fa-robot mr-3"></i> 开始智能评估
-               </el-button>
+               <el-tooltip :content="canStartEvaluation ? '开始智能评估' : '请先上传所有必要的影像资料'" placement="top">
+                   <div class="inline-block">
+                        <el-button 
+                            type="primary" 
+                            color="#2563EB" 
+                            class="px-12 py-6 text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300" 
+                            size="large" 
+                            :disabled="!canStartEvaluation"
+                            @click="sendStartPredictMsg"
+                        >
+                            <i class="fas fa-robot mr-3"></i> 开始智能评估
+                        </el-button>
+                   </div>
+               </el-tooltip>
              </div>
 
         </div>
@@ -223,15 +278,17 @@
 </template>
 
 <script setup>
-import { ref, defineComponent, h, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
-import { savePatientInfo, startPatientPredict, getAirwayPatientById, pushMediaInfo, getPatientMediaInfo } from '@/api/airway.js'
+import { ref, defineComponent, h, onMounted, computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { savePatientInfo, startPatientPredict, getPatientById, pushMediaInfo, getPatientMediaInfo, getPhotoFileByPath } from '@/api/airway.js'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const route = useRoute();
+const router = useRouter();
 const isEditing = ref(false);
 const isSaved = ref(false); // Track if patient info is already saved in the system
 const airwayPatientId = ref(null); // The database ID of the airway patient record
+const evaluationResult = ref(null); // Store prediction result
 
 const files = ref({
   appearanceFront: null,
@@ -262,6 +319,49 @@ const patientInfo = ref({
     prob: 0.0
 });
 
+const refreshMediaInfo = () => {
+    if (!airwayPatientId.value) return;
+
+    getPatientMediaInfo(airwayPatientId.value).then(mediaRes => {
+         if (mediaRes && mediaRes.code === 200 && mediaRes.data) {
+             const info = mediaRes.data;
+             
+             const loadPreview = (key, path) => {
+                 if (!path) {
+                    // If backend has no path, ensure frontend is cleared
+                    if (files.value[key]) {
+                        URL.revokeObjectURL(files.value[key]);
+                    }
+                    files.value[key] = null;
+                    return;
+                 }
+                 
+                 getPhotoFileByPath(path).then(blob => {
+                     if (blob && blob.size > 0) {
+                         if (files.value[key]) {
+                            URL.revokeObjectURL(files.value[key]);
+                         }
+                         files.value[key] = URL.createObjectURL(blob);
+                     }
+                 }).catch(e => console.error(`Failed to load ${key}`, e));
+             };
+
+             loadPreview('appearanceFront', info.physicalExamination1);
+             loadPreview('appearanceSide', info.physicalExamination2);
+             loadPreview('neckSideUp', info.thyromentalNeck1);
+             loadPreview('neckFrontUp', info.thyromentalNeck2);
+             loadPreview('mouthOpening', info.mouthOpening);
+             loadPreview('mallampati', info.mallampatiScore);
+             loadPreview('teeth', info.dentalExamination);
+             loadPreview('upperLip', info.upperLipBiteTest);
+             loadPreview('videoFlexion', info.neckFlexionExtension1);
+             loadPreview('videoGeneral', info.neckFlexionExtension2);
+         }
+    }).catch(err => {
+        console.error('Fetch media info failed', err);
+    });
+}
+
 onMounted(() => {
   if (route.query.patientData) {
     try {
@@ -271,39 +371,13 @@ onMounted(() => {
       // Check if patient info exists in the system
       if (patientInfo.value.patientId) {
         // 1. Check patient existence and get ID
-        getAirwayPatientById(patientInfo.value.patientId).then(res => {
+        getPatientById(patientInfo.value.patientId).then(res => {
           if (res && res.code === 200 && res.data) {
             isSaved.value = true;
             airwayPatientId.value = res.data.id;
             
             // 2. Fetch existing media info using the database ID
-            getPatientMediaInfo(airwayPatientId.value).then(mediaRes => {
-                 if (mediaRes && mediaRes.code === 200 && mediaRes.data) {
-                     const mediaList = mediaRes.data;
-                     // Map backend media types to frontend keys
-                     const typeMap = {
-                         'PHYSICAL_EXAMINATION_1': 'appearanceFront',
-                         'PHYSICAL_EXAMINATION_2': 'appearanceSide',
-                         'THYROMENTAL_NECK_1': 'neckSideUp',
-                         'THYROMENTAL_NECK_2': 'neckFrontUp',
-                         'MOUTH_OPENING': 'mouthOpening',
-                         'MALLAMPATI_SCORE': 'mallampati',
-                         'DENTAL_EXAMINATION': 'teeth',
-                         'UPPER_LIP_BITE_TEST': 'upperLip',
-                         'NECK_FLEXION_EXTENSION_1': 'videoFlexion',
-                         'NECK_FLEXION_EXTENSION_2': 'videoGeneral'
-                     };
-                     
-                     mediaList.forEach(item => {
-                         const key = typeMap[item.type];
-                         if (key && item.url) {
-                             files.value[key] = item.url; 
-                         }
-                     });
-                 }
-            }).catch(err => {
-                console.error('Fetch media info failed', err);
-            });
+            refreshMediaInfo();
 
           } else {
             isSaved.value = false;
@@ -322,16 +396,13 @@ onMounted(() => {
 const handleFileChange = (event, key) => {
   const file = event.target.files[0];
   if (file) {
-    // 1. Show preview immediately
-    const url = URL.createObjectURL(file);
-    files.value[key] = url;
-
-    // 2. Upload to backend
+    // 1. Validate preconditions
     if (!isSaved.value || !patientInfo.value.patientId) {
         ElMessage.warning('请先保存病人基本信息后再上传影像');
         return;
     }
 
+    // 2. Upload to backend
     const formData = new FormData();
     formData.append('airwaypatientId', airwayPatientId.value);
     formData.append('file', file);
@@ -351,9 +422,12 @@ const handleFileChange = (event, key) => {
     };
     formData.append('type', reverseTypeMap[key]);
 
+    console.log("开始调用上传接口")
     pushMediaInfo(formData).then(res => {
         if(res && res.code === 200) {
             ElMessage.success('上传成功');
+            // 3. Refresh media info from backend to display the uploaded image
+            refreshMediaInfo();
         } else {
             ElMessage.error(res?.message || '上传失败');
         }
@@ -445,7 +519,7 @@ const comfirmSavePatientInfo = () => {
              airwayPatientId.value = res.data.id;
           } else {
              // Fallback: fetch by patientId
-             getAirwayPatientById(patientInfo.value.patientId).then(r => {
+             getPatientById(patientInfo.value.patientId).then(r => {
                  if (r && r.code === 200 && r.data) {
                      airwayPatientId.value = r.data.id;
                  }
@@ -464,17 +538,38 @@ const comfirmSavePatientInfo = () => {
     })
 }
 
+const canStartEvaluation = computed(() => {
+    // Check if airwayPatientId exists
+    if (!airwayPatientId.value) return false;
+
+    // Check if all files in the files object are not null
+    const allFilesUploaded = Object.values(files.value).every(file => file !== null && file !== '');
+    return allFilesUploaded;
+});
+
 const sendStartPredictMsg = () => {
+  if (!canStartEvaluation.value) {
+      ElMessage.warning('请确保所有影像资料都已上传');
+      return;
+  }
+
   // 这里添加发送开始评估消息的逻辑
-  console.log('发送开始评估消息:', patientInfo.value);
-  startPatientPredict({
-    caseNumber: patientInfo.value.caseNumber
-  }).then(res => {
-    if (res.code === 200) {
-      ElMessage.success('评估开始')
+  console.log('发送开始评估消息:', airwayPatientId.value);
+  startPatientPredict(airwayPatientId.value).then(res => {
+    if (res && res.code === 200 && res.data) {
+        evaluationResult.value = {
+            prediction: res.data.prediction,
+            probability: res.data.probability
+        };
+        ElMessage.success('评估完成');
+    } else if (res && res.code === 10005) {
+        ElMessage.error(res.err || res.message || '不能预测正在进行或已经结束的任务');
     } else {
-      ElMessage.error('评估开始失败')
+        ElMessage.error(res?.message || '评估开始失败');
     }
+  }).catch(err => {
+      console.error(err);
+      ElMessage.error('请求异常');
   })
 }
 </script>

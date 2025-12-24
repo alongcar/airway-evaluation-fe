@@ -31,7 +31,7 @@ export const savePatientInfo = (data) => {
  * 获取气道评估病人信息
  * @param {string} patientId 
  */
-export const getAirwayPatientById = (patientId) => {
+export const getPatientById = (patientId) => {
   return service({
     url: '/airway/airway/patient/getByPatientId',
     method: 'get',
@@ -62,22 +62,36 @@ export const pushMediaInfo = (formData) => {
  */
 export const getPatientMediaInfo = (airwayPatientId) => {
   return service({
-    url: '/airway/patientMediaInfo/getByAirwayPatientId',
+    url: '/airway/airway/patientMediaInfo/getByAirwayPatientId',
     method: 'get',
     params: { airwayPatientId }
   });
 };
 
 /**
- * 第四步: 开始气道评估
- * 对应接口: airway/patientpredict/start
- * 说明: 所有的图像/视频信息上传完成后调用
- * @param {object} data 启动评估所需的参数 (如手术ID/患者ID)
+ * 获取患者图像/视频信息
+ * @param {string}  
  */
-export const startPatientPredict = (data) => {
+export const getPhotoFileByPath = (filePath) => {
   return service({
-    url: '/airway/patientpredict/start',
-    method: 'post',
-    data
+    url: '/file/files/preview',
+    method: 'get',
+    params: { filePath },
+    responseType: 'blob'
+  });
+};
+
+/**
+ * 第四步: 开始气道评估
+ * 对应接口: airway/patient/predict/start
+ * 说明: 所有的图像/视频信息上传完成后调用
+ * @param {object} airwayPatientId 病人的气道评估id
+ */
+export const startPatientPredict = (airwayPatientId) => {
+  return service({
+    url: '/airway/airway/patient/predict/start',
+    method: 'get',
+    params: { airwayPatientId },
+    timeout: 600000 // Set timeout to 10 minutes for AI prediction
   });
 };
