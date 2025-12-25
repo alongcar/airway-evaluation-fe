@@ -31,7 +31,7 @@
           <i class="fas fa-search ml-4 text-gray-400 text-lg"></i>
           <input
             type="text"
-            placeholder="请输入10位病案号 Enter Case Number"
+            placeholder="请输入10位病案号 Enter Admission Number"
             maxlength="10"
             class="w-full py-4 pl-3 pr-16 outline-none text-base border-none placeholder-gray-400 bg-transparent"
             v-model="caseNumber"
@@ -54,21 +54,23 @@
       <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
         <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300">
           <div class="mb-4 flex justify-center">
-            <img src="https://ai-public.mastergo.com/ai/img_res/609c1d8e783acb90230b67e4b6391ca3.jpg" alt="AI Analysis" class="w-full h-40 object-cover rounded-lg">
+            <img src="@/assets/images/ai_analysis.jpg" alt="AI Analysis" class="w-full h-40 object-cover rounded-lg">
+            <!-- <img src="https://ai-public.mastergo.com/ai/img_res/609c1d8e783acb90230b67e4b6391ca3.jpg" alt="AI Analysis" class="w-full h-40 object-cover rounded-lg"> -->
           </div>
           <h3 class="text-xl font-semibold text-blue-900 mb-2">智能分析</h3>
           <p class="text-gray-600">基于人工智能算法的气道图像深度解析技术，辅助临床诊断决策。</p>
         </div>
         <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300">
           <div class="mb-4 flex justify-center">
-            <img src="https://ai-public.mastergo.com/ai/img_res/41f1dd2d7ff6b26c9f2489cda7abe018.jpg" alt="Data Visualization" class="w-full h-40 object-cover rounded-lg">
+            <img src="@/assets/images/ai_report.jpg" alt="AI Report" class="w-full h-40 object-cover rounded-lg">
+            <!-- <img src="https://ai-public.mastergo.com/ai/img_res/41f1dd2d7ff6b26c9f2489cda7abe018.jpg" alt="Data Visualization" class="w-full h-40 object-cover rounded-lg"> -->
           </div>
           <h3 class="text-xl font-semibold text-blue-900 mb-2">可视化报告</h3>
           <p class="text-gray-600">一键生成结构化评估报告，直观展示关键指标变化趋势。</p>
         </div>
         <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300">
           <div class="mb-4 flex justify-center">
-            <img src="https://ai-public.mastergo.com/ai/img_res/5f2f1d7773138ce151cc61133a1ec518.jpg" alt="Cloud Storage" class="w-full h-40 object-cover rounded-lg">
+            <img src="@/assets/images/ai_storage.jpg" alt="AI Storage" class="w-full h-40 object-cover rounded-lg">
           </div>
           <h3 class="text-xl font-semibold text-blue-900 mb-2">云端存储</h3>
           <p class="text-gray-600">采用银行级加密标准保护患者隐私数据，支持跨平台访问。</p>

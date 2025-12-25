@@ -155,8 +155,30 @@
                 </div>
              </div>
 
-             <!-- Row 1 -->
-             <div class="flex gap-8 mb-10">
+             <!-- Loading Overlay -->
+             <div v-if="isEvaluating" class="absolute inset-0 z-30 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
+                <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
+                <h3 class="text-xl font-bold text-blue-900 mb-2">正在智能评估中...</h3>
+                <p class="text-gray-500">请耐心等待，这可能需要几分钟时间</p>
+                <p class="text-red-500 font-bold mt-2 animate-pulse">请勿刷新页面，以免中断评估</p>
+             </div>
+
+             <!-- Completed State -->
+             <div v-if="patientInfo.state === 'EVALUATED'" class="h-full flex flex-col items-center justify-center text-center p-10 animate-fade-in">
+                <div class="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mb-6 shadow-sm">
+                   <i class="fas fa-check-circle text-5xl text-green-500"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">评估已完成</h2>
+                <p class="text-gray-500 mb-8 max-w-md">评估已完成，在评估结果列表页面可以查看评估详情。</p>
+                <el-button type="primary" size="large" class="px-8" @click="router.push('/')">
+                    <i class="fas fa-home mr-2"></i> 返回首页
+                </el-button>
+             </div>
+
+             <!-- Upload Form -->
+             <div v-else>
+                 <!-- Row 1 -->
+                 <div class="flex gap-8 mb-10">
                 <!-- Appearance (2 images) -->
                 <div class="flex-2 flex flex-col">
                   <div class="h-10 flex items-center justify-center gap-2 bg-blue-600 rounded-full mb-4 px-4 shadow-md transform hover:scale-105 transition-transform duration-300">
@@ -247,22 +269,23 @@
                 </div>
              </div>
 
-             <!-- Bottom Action Button -->
-             <div class="flex justify-end mt-12 pt-6 border-t border-gray-100">
-               <el-tooltip :content="canStartEvaluation ? '开始智能评估' : '请先上传所有必要的影像资料'" placement="top">
-                   <div class="inline-block">
-                        <el-button 
-                            type="primary" 
-                            color="#2563EB" 
-                            class="px-12 py-6 text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300" 
-                            size="large" 
-                            :disabled="!canStartEvaluation"
-                            @click="sendStartPredictMsg"
-                        >
-                            <i class="fas fa-robot mr-3"></i> 开始智能评估
-                        </el-button>
-                   </div>
-               </el-tooltip>
+                 <!-- Bottom Action Button -->
+                 <div class="flex justify-end mt-12 pt-6 border-t border-gray-100">
+                   <el-tooltip :content="canStartEvaluation ? '开始智能评估' : '请先上传所有必要的影像资料'" placement="top">
+                       <div class="inline-block">
+                            <el-button 
+                                type="primary" 
+                                color="#2563EB" 
+                                class="px-12 py-6 text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300" 
+                                size="large" 
+                                :disabled="!canStartEvaluation"
+                                @click="sendStartPredictMsg"
+                            >
+                                <i class="fas fa-robot mr-3"></i> 开始智能评估
+                            </el-button>
+                       </div>
+                   </el-tooltip>
+                 </div>
              </div>
 
         </div>
@@ -278,7 +301,7 @@
 </template>
 
 <script setup>
-import { ref, defineComponent, h, onMounted, computed } from 'vue';
+import { ref, defineComponent, h, onMounted, onUnmounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { savePatientInfo, startPatientPredict, getPatientById, pushMediaInfo, getPatientMediaInfo, getPhotoFileByPath } from '@/api/airway.js'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -289,6 +312,7 @@ const isEditing = ref(false);
 const isSaved = ref(false); // Track if patient info is already saved in the system
 const airwayPatientId = ref(null); // The database ID of the airway patient record
 const evaluationResult = ref(null); // Store prediction result
+const isEvaluating = ref(false); // Track evaluation loading state
 
 const files = ref({
   appearanceFront: null,
@@ -362,6 +386,45 @@ const refreshMediaInfo = () => {
     });
 }
 
+const pollInterval = ref(null);
+
+const startPolling = () => {
+    if (pollInterval.value) clearInterval(pollInterval.value);
+    
+    pollInterval.value = setInterval(() => {
+        if (!patientInfo.value.patientId) return;
+        
+        getPatientById(patientInfo.value.patientId).then(res => {
+            if (res && res.code === 200 && res.data) {
+                // Update state
+                if (res.data.state && res.data.state !== patientInfo.value.state) {
+                    patientInfo.value.state = res.data.state;
+                }
+
+                if (res.data.state === 'EVALUATED') {
+                    clearInterval(pollInterval.value);
+                    pollInterval.value = null;
+                    isEvaluating.value = false;
+                    evaluationResult.value = {
+                        prediction: res.data.difficultAirway,
+                        probability: res.data.prob
+                    };
+                    ElMessage.success('评估完成');
+                } else if (res.data.state !== 'EVALUATING' && res.data.state !== 'EVALUATEING') {
+                    // Stopped for other reasons (e.g. FAILED)
+                    clearInterval(pollInterval.value);
+                    pollInterval.value = null;
+                    isEvaluating.value = false;
+                }
+            }
+        }).catch(err => console.error(err));
+    }, 3000);
+}
+
+onUnmounted(() => {
+    if (pollInterval.value) clearInterval(pollInterval.value);
+});
+
 onMounted(() => {
   if (route.query.patientData) {
     try {
@@ -376,6 +439,17 @@ onMounted(() => {
             isSaved.value = true;
             airwayPatientId.value = res.data.id;
             
+            // Update state from backend to ensure correct UI display
+            if (res.data.state) {
+                patientInfo.value.state = res.data.state;
+            }
+
+            // Restore evaluating state
+            if (res.data.state === 'EVALUATING' || res.data.state === 'EVALUATEING') {
+                isEvaluating.value = true;
+                startPolling();
+            }
+
             // 2. Fetch existing media info using the database ID
             refreshMediaInfo();
 
@@ -399,6 +473,7 @@ const handleFileChange = (event, key) => {
     // 1. Validate preconditions
     if (!isSaved.value || !patientInfo.value.patientId) {
         ElMessage.warning('请先保存病人基本信息后再上传影像');
+        event.target.value = ''; // Reset input value
         return;
     }
 
@@ -434,6 +509,8 @@ const handleFileChange = (event, key) => {
     }).catch(err => {
         console.error('Upload failed', err);
         ElMessage.error('上传请求异常');
+    }).finally(() => {
+        event.target.value = ''; // Reset input value regardless of success/failure
     });
   }
 };
@@ -481,6 +558,8 @@ const comfirmSavePatientInfo = () => {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning',
+      center: true,
+      customClass: 'custom-blue-message-box'
     }
   )
     .then(() => {
@@ -555,6 +634,7 @@ const sendStartPredictMsg = () => {
 
   // 这里添加发送开始评估消息的逻辑
   console.log('发送开始评估消息:', airwayPatientId.value);
+  isEvaluating.value = true;
   startPatientPredict(airwayPatientId.value).then(res => {
     if (res && res.code === 200 && res.data) {
         evaluationResult.value = {
@@ -562,17 +642,71 @@ const sendStartPredictMsg = () => {
             probability: res.data.probability
         };
         ElMessage.success('评估完成');
-    } else if (res && res.code === 10005) {
-        ElMessage.error(res.err || res.message || '不能预测正在进行或已经结束的任务');
+    } else if (res && res.code >= 10001 && res.code <= 10006) {
+        ElMessage.error(res.err || res.message || '评估失败');
     } else {
         ElMessage.error(res?.message || '评估开始失败');
     }
   }).catch(err => {
       console.error(err);
       ElMessage.error('请求异常');
+  }).finally(() => {
+      isEvaluating.value = false;
   })
 }
 </script>
+
+<style>
+/* Global styles for custom message box */
+.custom-blue-message-box {
+  border-radius: 12px !important;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.custom-blue-message-box .el-message-box__header {
+  padding: 15px 20px !important;
+  border-bottom: 2px solid #ebf5ff;
+  background-color: #fff;
+}
+
+.custom-blue-message-box .el-message-box__title {
+  display: flex;
+  justify-content: center;
+  color: #1e3a8a !important; /* blue-900 */
+  font-weight: bold !important;
+  font-size: 1.125rem !important;
+}
+
+.custom-blue-message-box .el-message-box__status.el-message-box-icon--warning {
+  color: #2563EB !important; /* blue-600 */
+}
+
+.custom-blue-message-box .el-message-box__content {
+  padding: 30px 20px !important;
+  color: #4b5563 !important; /* gray-600 */
+  font-size: 1rem !important;
+  text-align: center !important;
+}
+
+.custom-blue-message-box .el-message-box__btns {
+  padding: 10px 20px 20px !important;
+  justify-content: center !important;
+  gap: 12px;
+}
+
+.custom-blue-message-box .el-button--primary {
+  background-color: #2563EB !important;
+  border-color: #2563EB !important;
+  padding: 8px 24px !important;
+}
+
+.custom-blue-message-box .el-button--primary:hover {
+  background-color: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+}
+</style>
 
 <style scoped>
 .flex-2 {
