@@ -208,7 +208,7 @@
                 <div class="flex-1 flex flex-col">
                   <div class="h-10 flex items-center justify-center gap-2 bg-blue-600 rounded-full mb-4 px-4 shadow-md transform hover:scale-105 transition-transform duration-300">
                     <i class="fas fa-video text-white"></i>
-                    <span class="text-white font-medium">前屈</span>
+                    <span class="text-white font-medium">前屈后仰正面</span>
                   </div>
                   <div class="flex gap-4 h-full">
                     <UploadBox v-model="files.videoFlexion" id="videoFlexion" type="video" label="视频" @change="(e) => handleFileChange(e, 'videoFlexion')" />
@@ -263,7 +263,7 @@
                      </span> -->
                       <div class="h-10 flex items-center justify-center gap-2 bg-blue-600 rounded-full mb-4 px-4 shadow-md transform hover:scale-105 transition-transform duration-300">
                         <i class="fas fa-video text-white"></i>
-                        <span class="text-white font-medium">后仰</span>
+                        <span class="text-white font-medium">前屈后仰侧面</span>
                       </div>
                      <UploadBox v-model="files.videoGeneral" id="videoGeneral" type="video" @change="(e) => handleFileChange(e, 'videoGeneral')" />
                    </div>
