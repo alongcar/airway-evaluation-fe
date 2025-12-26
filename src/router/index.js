@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { getAuthToken } from '@/utils/storage.js'
 import Home from '@/pages/Home.vue'
 import AirwayEvaluation from '@/pages/AirwayEvaluation.vue'
+import EvaluationResults from '@/pages/EvaluationResults.vue'
 import Login from '@/pages/Login.vue'
 import Doctor from '@/pages/Doctor.vue'
 
@@ -17,6 +18,12 @@ const routes = [
     name: 'AirwayEvaluation',
     component: AirwayEvaluation,
     meta: { requiresAuth: false }
+  },
+  {
+    path: '/evaluation-results',
+    name: 'EvaluationResults',
+    component: EvaluationResults,
+    meta: { requiresAuth: true }
   },
   {
     path: '/login',

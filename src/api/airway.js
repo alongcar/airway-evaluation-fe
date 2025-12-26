@@ -95,3 +95,15 @@ export const startPatientPredict = (airwayPatientId) => {
     timeout: 600000 // Set timeout to 10 minutes for AI prediction
   });
 };
+
+/**
+ * 获取评估记录列表
+ * @param {object} data 查询参数 { startTime, endTime, keyword }
+ */
+export const getEvaluationList = (data) => {
+  return service({
+    url: '/airway/airway/patient/result-list', // Assuming this endpoint exists
+    method: 'post',
+    data
+  });
+};

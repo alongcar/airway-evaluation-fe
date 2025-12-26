@@ -25,7 +25,7 @@
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <i class="fas fa-user text-gray-400"></i>
               </div>
-              <input id="username" type="text" placeholder="请输入工号或邮箱" v-model="loginForm.username" class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" />
+              <input id="username" type="text" placeholder="请输入工号或邮箱" v-model="loginForm.username" @keyup.enter="focusPassword" class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" />
             </div>
           </div>
           <div>
@@ -34,21 +34,25 @@
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <i class="fas fa-lock text-gray-400"></i>
               </div>
-              <input id="password" :type="showPassword ? 'text' : 'password'" placeholder="请输入密码" v-model="loginForm.password" class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" />
+              <input id="password" :type="showPassword ? 'text' : 'password'" placeholder="请输入密码" v-model="loginForm.password" ref="passwordInput" @keyup.enter="handleLogin" class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" />
               <button type="button" @click="togglePasswordVisibility" class="absolute inset-y-0 right-0 pr-3 flex items-center">
                 <i :class="showPassword ? 'fas fa-eye-slash text-gray-400' : 'fas fa-eye text-gray-400'"></i>
               </button>
             </div>
           </div>
           <div class="flex items-center justify-between">
-            <div class="flex items-center">
+            <!-- <div class="flex items-center">
               <input id="remember-me" type="checkbox" v-model="loginForm.rememberMe" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
               <label for="remember-me" class="ml-2 block text-sm text-gray-700">记住我</label>
             </div>
-            <a href="#" class="text-sm text-blue-600 hover:text-blue-800 transition-colors duration-200">忘记密码？</a>
+            <a href="#" class="text-sm text-blue-600 hover:text-blue-800 transition-colors duration-200">忘记密码？</a> -->
           </div>
-          <button type="submit" class="!rounded-button whitespace-nowrap w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            立即登录
+          <button 
+            type="submit" 
+            :disabled="isLoading"
+            class="!rounded-button whitespace-nowrap w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            <i v-if="isLoading" class="fas fa-spinner fa-spin"></i>
+            {{ isLoading ? '登录中...' : '立即登录' }}
           </button>
         </form>
         <div class="mt-8 pt-6 border-t border-gray-200">
@@ -64,10 +68,10 @@
       <p class="mt-1">技术支持：智竹医疗科技有限公司 | 备案号：京ICP备XXXXXXXX号</p>
     </footer>
     <div class="absolute bottom-20 left-10 opacity-20 transform rotate-12">
-      <img src="https://ai-public.mastergo.com/ai/img_res/055190c1c710158ddfa6610014261948.jpg" alt="" class="w-24 h-24 object-contain">
+      <img src="@/assets/images/decoration_1.jpg" alt="" class="w-24 h-24 object-contain">
     </div>
     <div class="absolute top-1/4 right-20 opacity-15 transform -rotate-12">
-      <img src="https://ai-public.mastergo.com/ai/img_res/e0b8f864df3e6b38947efcecff5fb33e.jpg" alt="" class="w-32 h-32 object-contain">
+      <img src="@/assets/images/decoration_2.jpg" alt="" class="w-32 h-32 object-contain">
     </div>
   </div>
 </template>
@@ -77,8 +81,11 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { setAuthToken } from '@/utils/storage.js'
 import { ElMessage } from 'element-plus'
+import { login } from '@/api/auth.js'
 
 const router = useRouter()
+
+const passwordInput = ref(null)
 
 const loginForm = ref({
   username: '',
@@ -87,19 +94,50 @@ const loginForm = ref({
 })
 
 const showPassword = ref(false)
+const isLoading = ref(false)
 
 const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value
 }
 
+const focusPassword = () => {
+  passwordInput.value?.focus()
+}
+
 const handleLogin = () => {
   if (loginForm.value.username && loginForm.value.password) {
-    setAuthToken({
-      access_token: 'dummy_access_token',
-      refresh_token: 'dummy_refresh_token'
+    isLoading.value = true
+    const params = {
+      username: loginForm.value.username,
+      password: loginForm.value.password
+    }
+    
+    login(params).then(res => {
+      // Check for direct token response (no code wrapper)
+      if (res && res.access_token) {
+        setAuthToken(res)
+        ElMessage.success('登录成功')
+        router.push('/evaluation-results')
+      } 
+      // Fallback check for wrapped response
+      else if (res && res.code === 200) {
+        setAuthToken(res.data)
+        ElMessage.success('登录成功')
+        router.push('/evaluation-results')
+      } else {
+        ElMessage.error(res?.err || '登录失败')
+      }
+    }).catch(err => {
+      console.error(err)
+      // Extract error message from backend response if available
+      const errorMsg = err.response?.data?.err || 
+                       err.response?.data?.message || 
+                       err.response?.data?.error_description || 
+                       '登录失败，请检查用户名或密码'
+      ElMessage.error(errorMsg)
+    }).finally(() => {
+      isLoading.value = false
     })
-    ElMessage.success('登录成功')
-    router.push('/doctor')
   } else {
     ElMessage.warning('请输入用户名和密码')
   }

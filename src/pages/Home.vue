@@ -8,7 +8,17 @@
     <!-- Header Section -->
     <header class="w-full py-6 px-8 flex justify-between items-center z-10">
       <div></div>
-      <router-link to="/doctor">
+      <div v-if="isLoggedIn" class="flex flex-col items-end gap-5">
+        <div @click="router.push('/evaluation-results')" class="flex items-center space-x-2 text-blue-900 hover:text-blue-700 transition-all duration-300 transform hover:scale-105 cursor-pointer group">
+           <i class="fas fa-clipboard-list text-xl"></i>
+           <span class="font-sans text-sm whitespace-nowrap">查看评估结果 View Results</span>
+        </div>
+        <div @click="handleLogout" class="flex items-center space-x-2 text-blue-900 hover:text-blue-700 transition-all duration-300 transform hover:scale-105 cursor-pointer group">
+           <i class="fas fa-sign-out-alt text-xl"></i>
+           <span class="font-sans text-sm whitespace-nowrap">退出登录 Logout</span>
+        </div>
+      </div>
+      <router-link v-else to="/doctor">
         <div class="flex items-center space-x-2 text-blue-900 hover:text-blue-700 transition-all duration-300 transform hover:scale-105 cursor-pointer group">
           <i class="fas fa-user-md text-xl"></i>
           <span class="font-sans text-sm whitespace-nowrap">医生登录 Doctor Login</span>
@@ -122,16 +132,30 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getPatientSurgeryList } from '@/api/airway.js'
+import { getAuthToken, removeAuthToken } from '@/utils/storage.js'
 
 const router = useRouter()
 const caseNumber = ref('')
 const showSurgeryList = ref(false)
 const surgeryList = ref([])
 const patientInfo = ref(null)
+const isLoggedIn = ref(false)
+
+onMounted(() => {
+    const token = getAuthToken()
+    isLoggedIn.value = !!token
+})
+
+const handleLogout = () => {
+    removeAuthToken()
+    isLoggedIn.value = false
+    ElMessage.success('已退出登录')
+    router.push('/')
+}
 
 const handleNativeInput = (e) => {
   // Allow only numbers

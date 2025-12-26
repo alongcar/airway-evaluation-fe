@@ -12,9 +12,10 @@
             气道评估系统 <span class="text-sm font-light text-gray-600 ml-2">Airway Assessment System</span>
          </div>
       </div>
-      <el-button type="primary" plain class="shadow-sm hover:shadow-md transition-all" @click="router.push('/')">
-        <i class="fas fa-home mr-2"></i> 返回首页
-      </el-button>
+      <div @click="router.push('/')" class="flex items-center space-x-2 text-blue-900 hover:text-blue-700 transition-all duration-300 transform hover:scale-105 cursor-pointer group">
+        <i class="fas fa-home text-xl"></i>
+        <span class="font-sans text-sm whitespace-nowrap">返回首页 Back to Home</span>
+      </div>
     </header>
 
     <!-- Main Content Area -->
