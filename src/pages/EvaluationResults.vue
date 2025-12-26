@@ -231,7 +231,7 @@
 </template>
 
 <script setup>
-import { ref, defineComponent, h, onMounted, computed } from 'vue';
+import { ref, defineComponent, h, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { getEvaluationList, getPatientById, getPatientMediaInfo, getPhotoFileByPath } from '@/api/airway.js';
 import { ElMessage } from 'element-plus';
@@ -246,6 +246,7 @@ const difficultAirwayFilter = ref(null);
 const list = ref([]);
 const currentItem = ref(null);
 const loading = ref(false);
+const pollingTimer = ref(null);
 
 // Detail State
 const patientInfo = ref({});
@@ -330,8 +331,8 @@ const generateMockData = () => {
 };
 
 // Actions
-const fetchList = () => {
-    loading.value = true;
+const fetchList = (isPolling = false) => {
+    if (!isPolling) loading.value = true;
     
     const payload = {
         startTime: dateRange.value ? dateRange.value[0] : null,
@@ -344,14 +345,16 @@ const fetchList = () => {
         if (res && res.code === 200 && res.data) {
             list.value = res.data;
         } else {
-            ElMessage.warning(res?.message || '获取列表失败');
-            list.value = []; // Clear list on failure or keep empty
+            if (!isPolling) {
+                ElMessage.warning(res?.message || '获取列表失败');
+                list.value = []; // Clear list on failure or keep empty
+            }
         }
     }).catch(err => {
         console.error('Fetch list failed', err);
-        ElMessage.error('获取列表异常');
+        if (!isPolling) ElMessage.error('获取列表异常');
     }).finally(() => {
-        loading.value = false;
+        if (!isPolling) loading.value = false;
     });
 };
 
@@ -428,8 +431,27 @@ const formatGender = (val) => {
     return map[val] || val || '-';
 };
 
+const startPolling = () => {
+    stopPolling();
+    pollingTimer.value = setInterval(() => {
+        fetchList(true);
+    }, 5000);
+};
+
+const stopPolling = () => {
+    if (pollingTimer.value) {
+        clearInterval(pollingTimer.value);
+        pollingTimer.value = null;
+    }
+};
+
 onMounted(() => {
     fetchList();
+    startPolling();
+});
+
+onUnmounted(() => {
+    stopPolling();
 });
 </script>
 
