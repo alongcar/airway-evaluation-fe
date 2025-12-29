@@ -1,0 +1,1 @@
+cp -r dist/* /home/base_env/nginx/html/airway

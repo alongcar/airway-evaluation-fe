@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy-disk": "npm run build && npm run upload-disk",
+    "upload-disk": "sudo ./deploy-disk.sh"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
